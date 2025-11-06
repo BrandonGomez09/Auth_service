@@ -1,20 +1,13 @@
-import { User, UserStatus } from '../../domain/entities/user.entity';
-import { EmailVerification } from '../../domain/entities/email-verification.entity';
+import { RegisterUserDto } from '../dtos/register-user.dto';
 import { IUserRepository } from '../../domain/interfaces/user.repository.interface';
 import { IEmailVerificationRepository } from '../../domain/interfaces/email-verification.repository.interface';
 import { IPasswordHasher } from '../../domain/interfaces/password-hasher.interface';
 import { ITokenGenerator } from '../../domain/interfaces/token-generator.interface';
 import { IEventPublisher } from '../../domain/interfaces/event-publisher.interface';
-import { RegisterUserDto } from '../dtos/register-user.dto';
+import { User, UserStatus } from '../../domain/entities/user.entity';
+import { EmailVerification } from '../../domain/entities/email-verification.entity';
 import { UserValidator } from '../../domain/validators/user.validator';
 import { PasswordStrengthValidator } from '../../domain/validators/password-strength.validator';
-
-export interface RegisterUserResponse {
-  user: User;
-  accessToken: string;
-  refreshToken: string;
-  message: string;
-}
 
 export class RegisterUserUseCase {
   constructor(
@@ -25,7 +18,10 @@ export class RegisterUserUseCase {
     private readonly eventPublisher: IEventPublisher
   ) {}
 
-  async execute(dto: RegisterUserDto): Promise<RegisterUserResponse> {
+  async execute(dto: RegisterUserDto): Promise<{
+    message: string;
+    user: User;
+  }> {
     const existingUser = await this.userRepository.findByEmail(dto.email);
     if (existingUser) {
       throw {
@@ -35,50 +31,39 @@ export class RegisterUserUseCase {
     }
 
     const passwordValidator = new PasswordStrengthValidator(dto.password);
-    const passwordValidation = passwordValidator.validateMinimumRequirements();
-
-    if (!passwordValidation.isValid) {
-      throw {
-        http_status: 422,
-        validations: [{
-          property: 'password',
-          errorMessages: passwordValidation.errors
-        }]
-      };
-    }
+    await passwordValidator.validate();
 
     const hashedPassword = await this.passwordHasher.hash(dto.password);
 
-    const user = new User(
+    const newUser = new User(
       0,
       dto.names,
       dto.firstLastName,
       dto.secondLastName,
-      dto.email.toLowerCase(),
+      dto.email,
       hashedPassword,
-      '',
+      null,
       dto.phoneNumber || null,
-      0, 
-      null, 
+      0,
+      null,
       UserStatus.PENDING,
-      false, 
-      false, 
-      null, 
-      null, 
-      null, 
-      null, 
+      false,
+      false,
+      null,
+      null,
+      dto.stateId,
+      dto.municipalityId,
       new Date(),
-      new Date(), 
-      null 
+      new Date(),
+      null
     );
 
-    const userValidator = new UserValidator(user);
-    await userValidator.validateOrThrow();
+    const userValidator = new UserValidator(newUser);
+    await userValidator.validateWithCustomRules();
 
-    const savedUser = await this.userRepository.save(user);
+    const savedUser = await this.userRepository.save(newUser);
 
     const verificationToken = this.tokenGenerator.generateRandomToken();
-    
     const expiresAt = new Date();
     expiresAt.setHours(expiresAt.getHours() + 24);
 
@@ -87,18 +72,12 @@ export class RegisterUserUseCase {
       savedUser.id,
       verificationToken,
       expiresAt,
-      false, 
-      new Date(), 
-      null 
+      false,
+      new Date(),
+      null
     );
-    
-    await this.emailVerificationRepository.save(emailVerification);
 
-    const accessToken = this.tokenGenerator.generateAccessToken(
-      savedUser.id,
-      savedUser.email
-    );
-    const refreshToken = this.tokenGenerator.generateRefreshToken(savedUser.id);
+    await this.emailVerificationRepository.save(emailVerification);
 
     await this.eventPublisher.publish('user.registered', {
       userId: savedUser.id,
@@ -109,10 +88,8 @@ export class RegisterUserUseCase {
     });
 
     return {
-      user: savedUser,
-      accessToken,
-      refreshToken,
-      message: 'User registered successfully. Please verify your email.'
+      message: 'User registered successfully. Please verify your email to activate your account.',
+      user: savedUser
     };
   }
 }

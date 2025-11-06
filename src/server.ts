@@ -1,15 +1,20 @@
 import app from './app';
 import { initializeDatabase, closeDatabase } from './config/data-source';
 import { eventPublisher } from './infrastructure/api/dependencies/dependencies';
+import { runSeeds } from './config/seed/seed';
 
 const PORT = process.env.PORT;
 
 const startServer = async () => {
   try {
-    console.log('🚀 Starting Auth Service...');
+    console.log('🚀 Starting Auth-User Service...');
     console.log('📦 Connecting to database...');
     await initializeDatabase();
     console.log('✅ Database connected successfully');
+
+    console.log('🌱 Running database seeds...');
+    await runSeeds();
+    console.log('✅ Seeds executed successfully');
 
     console.log('📨 Connecting to RabbitMQ...');
     console.log('--- DEBUGGING RABBITMQ ---');

@@ -4,7 +4,8 @@ import {
   getUsersPaginatedController,
   updateUserController,
   updateProfileController,
-  deleteUserController
+  deleteUserController,
+  completeProfileController
 } from '../dependencies/dependencies';
 
 const router = Router();
@@ -18,5 +19,7 @@ router.put('/profile', updateProfileController.handle.bind(updateProfileControll
 router.put('/:id', updateUserController.handle.bind(updateUserController));
 
 router.delete('/:id', deleteUserController.handle.bind(deleteUserController));
+
+router.post('/complete-profile', completeProfileController.handle.bind(completeProfileController));
 
 export default router;

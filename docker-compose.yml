@@ -24,10 +24,9 @@ services:
       BCRYPT_SALT_ROUNDS: ${BCRYPT_SALT_ROUNDS}
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS}
       
-      # --- ESTA LÍNEA FUE CORREGIDA ---
-      # Antes: amqp://guest:guest@rabbitmq
+      
       RABBITMQ_URL: ${RABBITMQ_URL} 
-      # --------------------------------
+      
 
       RABBITMQ_EXCHANGE: ${RABBITMQ_EXCHANGE}
       RABBITMQ_QUEUE_AUTH: ${RABBITMQ_QUEUE_AUTH}

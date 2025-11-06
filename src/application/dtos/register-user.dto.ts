@@ -1,33 +1,48 @@
-import { IsEmail, IsNotEmpty, Length, IsOptional, Matches } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsEmail,
+  IsString,
+  IsOptional,
+  Length,
+  IsNumber
+} from 'class-validator';
 
 export class RegisterUserDto {
-  @IsNotEmpty({ message: 'Names is required' })
-  @Length(2, 255, { message: 'Names must be between 2 and 255 characters' })
-  public names: string;
+  @IsNotEmpty()
+  @IsString()
+  @Length(2, 255)
+  names: string;
 
-  @IsNotEmpty({ message: 'First last name is required' })
-  @Length(2, 255, { message: 'First last name must be between 2 and 255 characters' })
-  public firstLastName: string;
+  @IsNotEmpty()
+  @IsString()
+  @Length(2, 255)
+  firstLastName: string;
 
-  @IsNotEmpty({ message: 'Second last name is required' })
-  @Length(2, 255, { message: 'Second last name must be between 2 and 255 characters' })
-  public secondLastName: string;
+  @IsNotEmpty()
+  @IsString()
+  @Length(2, 255)
+  secondLastName: string;
 
-  @IsNotEmpty({ message: 'Email is required' })
-  @IsEmail({}, { message: 'Invalid email format' })
-  public email: string;
+  @IsNotEmpty()
+  @IsEmail()
+  email: string;
 
-  @IsNotEmpty({ message: 'Password is required' })
-  @Length(8, 128, { message: 'Password must be between 8 and 128 characters' })
-  @Matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/, {
-    message: 'Password must contain uppercase, lowercase, number and special character'
-  })
-  public password: string;
+  @IsNotEmpty()
+  @IsString()
+  password: string;
 
   @IsOptional()
+  @IsString()
   @Length(10, 50)
-  @Matches(/^\+?[0-9]{10,15}$/, { message: 'Invalid phone number format' })
-  public phoneNumber?: string;
+  phoneNumber?: string;
+
+  @IsNotEmpty()
+  @IsNumber()
+  stateId: number;
+
+  @IsNotEmpty()
+  @IsNumber()
+  municipalityId: number;
 
   constructor(
     names: string,
@@ -35,6 +50,8 @@ export class RegisterUserDto {
     secondLastName: string,
     email: string,
     password: string,
+    stateId: number,
+    municipalityId: number,
     phoneNumber?: string
   ) {
     this.names = names;
@@ -42,6 +59,8 @@ export class RegisterUserDto {
     this.secondLastName = secondLastName;
     this.email = email;
     this.password = password;
+    this.stateId = stateId;
+    this.municipalityId = municipalityId;
     this.phoneNumber = phoneNumber;
   }
 }
