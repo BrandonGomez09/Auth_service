@@ -1,5 +1,3 @@
-import { validate, ValidationError } from 'class-validator';
-
 export class PasswordStrengthValidator {
   constructor(private password: string) {}
 

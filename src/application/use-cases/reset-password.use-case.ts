@@ -16,7 +16,6 @@ export class ResetPasswordUseCase {
 
   async execute(dto: ResetPasswordDto): Promise<{ message: string }> {
     const resetToken = await this.passwordResetTokenRepository.findByToken(dto.token);
-
     if (!resetToken) {
       throw {
         http_status: 404,
@@ -27,18 +26,11 @@ export class ResetPasswordUseCase {
     const validator = new PasswordResetTokenValidator(resetToken);
     await validator.validateWithCustomRules();
 
+    // --- INICIO DEL CÓDIGO CORREGIDO ---
+    // Se reemplazó el bloque 'validateMinimumRequirements' por el nuevo método 'validate'
     const passwordValidator = new PasswordStrengthValidator(dto.newPassword);
-    const passwordValidation = passwordValidator.validateMinimumRequirements();
-
-    if (!passwordValidation.isValid) {
-      throw {
-        http_status: 422,
-        validations: [{
-          property: 'newPassword',
-          errorMessages: passwordValidation.errors
-        }]
-      };
-    }
+    await passwordValidator.validate();
+    // --- FIN DEL CÓDIGO CORREGIDO ---
 
     const user = await this.userRepository.findById(resetToken.userId);
 
@@ -53,18 +45,18 @@ export class ResetPasswordUseCase {
 
     user.passwordHash = hashedPassword;
     user.updatedAt = new Date();
-    await this.userRepository.update(user); 
-
+    await this.userRepository.update(user);
+    
     resetToken.isUsed = true;
     resetToken.usedAt = new Date();
     await this.passwordResetTokenRepository.update(resetToken.id, resetToken);
-
+    
     await this.eventPublisher.publish('user.password.reset.completed', {
       userId: user.id,
       email: user.email,
       timestamp: new Date().toISOString()
     });
-
+    
     return {
       message: 'Password reset successfully'
     };
