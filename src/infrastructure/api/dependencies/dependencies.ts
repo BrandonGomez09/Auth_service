@@ -104,20 +104,24 @@ const passwordHasher = new BcryptPasswordHasherService();
 const tokenGenerator = new JwtTokenGeneratorService();
 const eventPublisher = new RabbitMQEventPublisherService();
 
+// --- INICIO CORRECCIÓN DE INYECCIÓN DE DEPENDENCIAS ---
+
+// CORRECCIÓN CLAVE: RegisterUserUseCase ahora solo recibe 3 dependencias (ya no necesita emailVerificationRepository ni tokenGenerator)
 const registerUserUseCase = new RegisterUserUseCase(
   userRepository,
-  emailVerificationRepository,
   passwordHasher,
-  tokenGenerator,
   eventPublisher
 );
-
+// Se mantiene la inyección original de RegisterKitchenAdminUseCase
 const registerKitchenAdminUseCase = new RegisterKitchenAdminUseCase(
   userRepository,
   roleRepository,
   passwordHasher,
   eventPublisher
 );
+
+// --- FIN CORRECCIÓN DE INYECCIÓN DE DEPENDENCIAS ---
+
 
 const loginUserUseCase = new LoginUserUseCase(
   userRepository,

@@ -1,15 +1,17 @@
 import { IUserRepository } from '../../domain/interfaces/user.repository.interface';
 import { IRoleRepository } from '../../domain/interfaces/role.repository.interface';
-import { UserStatus } from '../../domain/entities/user.entity';
+import { IEventPublisher } from '../../domain/interfaces/event-publisher.interface'; 
+import { AssignRoleDto } from '../dtos/assign-role.dto';
 
-export class AssignVolunteerRoleUseCase {
+export class AssignRoleUseCase {
   constructor(
     private readonly userRepository: IUserRepository,
-    private readonly roleRepository: IRoleRepository
-  ) { }
+    private readonly roleRepository: IRoleRepository,
+    private readonly eventPublisher: IEventPublisher
+  ) {}
 
-  async execute(userId: number): Promise<void> {
-    const user = await this.userRepository.findById(userId);
+  async execute(dto: AssignRoleDto): Promise<{ message: string }> {
+    const user = await this.userRepository.findById(dto.userId);
     if (!user) {
       throw {
         http_status: 404,
@@ -17,16 +19,39 @@ export class AssignVolunteerRoleUseCase {
       };
     }
 
-    const volunteerRole = await this.roleRepository.findByName('Voluntario');
-    if (!volunteerRole) {
+    const role = await this.roleRepository.findById(dto.roleId);
+    if (!role) {
       throw {
-        http_status: 500,
-        message: 'Volunteer role not found in system'
+        http_status: 404,
+        message: 'Role not found'
       };
     }
 
-    await this.roleRepository.assignRoleToUser(user.id, volunteerRole.id);
-    user.status = UserStatus.ACTIVE;
-    await this.userRepository.update(user);
+    const userRoles = await this.roleRepository.getUserRoles(dto.userId);
+    const hasRole = userRoles.some(r => r.id === dto.roleId);
+    if (hasRole) {
+      throw {
+        http_status: 400,
+        message: 'User already has this role'
+      };
+    }
+
+    await this.roleRepository.assignRoleToUser(
+      dto.userId,
+      dto.roleId,
+      dto.assignedBy
+    );
+    
+    await this.eventPublisher.publish('user.role.assigned', {
+      userId: dto.userId,
+      roleId: dto.roleId,
+      roleName: role.name,
+      assignedBy: dto.assignedBy,
+      timestamp: new Date().toISOString()
+    });
+
+    return {
+      message: `Role '${role.name}' assigned successfully to user`
+    };
   }
 }
