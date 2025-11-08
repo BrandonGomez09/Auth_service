@@ -3,12 +3,15 @@ import {
   registerUserController,
   loginUserController,
   validateTokenController,
-  refreshTokenController
+  refreshTokenController,
+  registerKitchenAdminController
 } from '../dependencies/dependencies';
 
 const router = Router();
 
 router.post('/register', registerUserController.handle.bind(registerUserController));
+
+router.post('/register-kitchen-admin', registerKitchenAdminController.handle.bind(registerKitchenAdminController));
 
 router.post('/login', loginUserController.handle.bind(loginUserController));
 

@@ -4,7 +4,7 @@ config();
 
 export const rabbitmqConfig = {
   url: process.env.RABBITMQ_URL || 'amqp://didier:231193@localhost:5672',
-  exchange: process.env.RABBITMQ_EXCHANGE || 'microservices_auth',
+  exchange: process.env.RABBITMQ_EXCHANGE || 'chambealo_events',
   exchangeType: 'topic' as const,
   queues: {
     auth: process.env.RABBITMQ_QUEUE_AUTH,
@@ -19,7 +19,8 @@ export const rabbitmqConfig = {
     passwordResetRequested: 'user.password.reset.requested',
     passwordResetCompleted: 'user.password.reset.completed',
     roleAssigned: 'user.role.assigned',
-    roleRemoved: 'user.role.removed'
+    roleRemoved: 'user.role.removed',
+    kitchenAdminRegistered: 'kitchen.admin.registered'
   },
   options: {
     durable: true,

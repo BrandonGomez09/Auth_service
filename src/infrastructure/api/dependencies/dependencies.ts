@@ -50,6 +50,8 @@ import { UpdateUserReputationUseCase } from '../../../application/use-cases/upda
 import { GetUserReputationHistoryUseCase } from '../../../application/use-cases/get-user-reputation-history.use-case';
 import { AssignVolunteerRoleUseCase } from '../../../application/use-cases/assign-volunteer-role.use-case';
 import { CompleteProfileUseCase } from '../../../application/use-cases/complete-profile.use-case';
+import { RegisterKitchenAdminUseCase } from '../../../application/use-cases/register-kitchen-admin.use-case';
+
 
 import { RegisterUserController } from '../controllers/register-user.controller';
 import { LoginUserController } from '../controllers/login-user.controller';
@@ -84,6 +86,7 @@ import { GetUserSchedulesController } from '../controllers/get-user-schedules.co
 import { UpdateUserReputationController } from '../controllers/update-user-reputation.controller';
 import { GetUserReputationHistoryController } from '../controllers/get-user-reputation-history.controller';
 import { CompleteProfileController } from '../controllers/complete-profile.controller';
+import { RegisterKitchenAdminController } from '../controllers/register-kitchen-admin.controller';
 
 const userRepository = new UserAdapter(AppDataSource);
 const emailVerificationRepository = new EmailVerificationRepository();
@@ -106,6 +109,13 @@ const registerUserUseCase = new RegisterUserUseCase(
   emailVerificationRepository,
   passwordHasher,
   tokenGenerator,
+  eventPublisher
+);
+
+const registerKitchenAdminUseCase = new RegisterKitchenAdminUseCase(
+  userRepository,
+  roleRepository,
+  passwordHasher,
   eventPublisher
 );
 
@@ -186,6 +196,8 @@ const getUserPermissionsUseCase = new GetUserPermissionsUseCase(
 const checkUserPermissionUseCase = new CheckUserPermissionUseCase(
   permissionRepository
 );
+
+
 
 const getUserByIdUseCase = new GetUserByIdUseCase(userRepository);
 
@@ -272,6 +284,7 @@ const completeProfileUseCase = new CompleteProfileUseCase(
 );
 
 export const registerUserController = new RegisterUserController(registerUserUseCase);
+export const registerKitchenAdminController = new RegisterKitchenAdminController(registerKitchenAdminUseCase);
 export const loginUserController = new LoginUserController(loginUserUseCase);
 export const validateTokenController = new ValidateTokenController(validateTokenUseCase);
 export const refreshTokenController = new RefreshTokenController(refreshTokenUseCase);
