@@ -3,7 +3,6 @@ import { IPhoneVerificationRepository } from '../../domain/interfaces/phone-veri
 import { IEventPublisher } from '../../domain/interfaces/event-publisher.interface';
 import { VerifyPhoneDto } from '../dtos/verify-phone.dto';
 import { PhoneVerificationValidator } from '../../domain/validators/phone-verification.validator';
-import { UserStatus } from '../../domain/entities/user.entity';
 
 export class VerifyPhoneUseCase {
   constructor(
@@ -14,7 +13,6 @@ export class VerifyPhoneUseCase {
 
   async execute(dto: VerifyPhoneDto): Promise<{ message: string }> {
     const verification = await this.phoneVerificationRepository.findLatestByUserId(dto.userId);
-
     if (!verification) {
       throw {
         http_status: 404,
@@ -30,7 +28,6 @@ export class VerifyPhoneUseCase {
 
     if (verification.code !== dto.code) {
       const remainingAttempts = validator.getRemainingAttempts();
-      
       throw {
         http_status: 400,
         message: `Invalid verification code. ${remainingAttempts} attempts remaining.`
@@ -38,7 +35,6 @@ export class VerifyPhoneUseCase {
     }
 
     const user = await this.userRepository.findById(dto.userId);
-
     if (!user) {
       throw {
         http_status: 404,
@@ -49,10 +45,6 @@ export class VerifyPhoneUseCase {
     user.verifiedPhone = true;
     user.phoneVerifiedAt = new Date(); 
     user.updatedAt = new Date();
-
-    if (user.verifiedEmail) {
-      user.status = UserStatus.ACTIVE;
-    }
 
     await this.userRepository.update(user);
 
@@ -65,7 +57,7 @@ export class VerifyPhoneUseCase {
       phoneNumber: user.phoneNumber,
       timestamp: new Date().toISOString()
     });
-
+    
     return {
       message: 'Phone number verified successfully'
     };

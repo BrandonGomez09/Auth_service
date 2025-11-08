@@ -23,14 +23,6 @@ export class CompleteProfileUseCase {
         message: 'User not found'
       };
     }
-
-    if (!user.verifiedEmail) {
-      throw {
-        http_status: 400,
-        message: 'Please verify your email first'
-      };
-    }
-
     if (dto.skillIds && dto.skillIds.length > 0) {
       for (const skillId of dto.skillIds) {
         const skill = await this.skillRepository.findById(skillId);
@@ -50,13 +42,12 @@ export class CompleteProfileUseCase {
           new Date(),
           new Date()
         );
-
         await this.userSkillRepository.create(userSkill);
       }
     }
 
     await this.assignVolunteerRoleUseCase.execute(dto.userId);
-
+    
     return {
       message: 'Profile completed successfully. You can now login.'
     };

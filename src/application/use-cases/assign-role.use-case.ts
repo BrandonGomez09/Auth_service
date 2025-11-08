@@ -1,18 +1,15 @@
 import { IUserRepository } from '../../domain/interfaces/user.repository.interface';
 import { IRoleRepository } from '../../domain/interfaces/role.repository.interface';
-import { IEventPublisher } from '../../domain/interfaces/event-publisher.interface';
-import { AssignRoleDto } from '../dtos/assign-role.dto';
+import { UserStatus } from '../../domain/entities/user.entity';
 
-export class AssignRoleUseCase {
+export class AssignVolunteerRoleUseCase {
   constructor(
     private readonly userRepository: IUserRepository,
-    private readonly roleRepository: IRoleRepository,
-    private readonly eventPublisher: IEventPublisher
-  ) {}
+    private readonly roleRepository: IRoleRepository
+  ) { }
 
-  async execute(dto: AssignRoleDto): Promise<{ message: string }> {
-    const user = await this.userRepository.findById(dto.userId);
-
+  async execute(userId: number): Promise<void> {
+    const user = await this.userRepository.findById(userId);
     if (!user) {
       throw {
         http_status: 404,
@@ -20,46 +17,16 @@ export class AssignRoleUseCase {
       };
     }
 
-    const role = await this.roleRepository.findById(dto.roleId);
-
-    if (!role) {
+    const volunteerRole = await this.roleRepository.findByName('Voluntario');
+    if (!volunteerRole) {
       throw {
-        http_status: 404,
-        message: 'Role not found'
+        http_status: 500,
+        message: 'Volunteer role not found in system'
       };
     }
 
-    const userRoles = await this.roleRepository.getUserRoles(dto.userId);
-    const hasRole = userRoles.some(r => r.id === dto.roleId);
-
-    if (hasRole) {
-      throw {
-        http_status: 400,
-        message: 'User already has this role'
-      };
-    }
-
-    await this.roleRepository.assignRoleToUser(
-      dto.userId,
-      dto.roleId,
-      dto.assignedBy
-    );
-
-    if (dto.isPrimary) {
-      await this.roleRepository.setPrimaryRole(dto.userId, dto.roleId);
-    }
-
-    await this.eventPublisher.publish('user.role.assigned', {
-      userId: dto.userId,
-      roleId: dto.roleId,
-      roleName: role.name,
-      assignedBy: dto.assignedBy,
-      isPrimary: dto.isPrimary || false,
-      timestamp: new Date().toISOString()
-    });
-
-    return {
-      message: `Role '${role.name}' assigned successfully to user`
-    };
+    await this.roleRepository.assignRoleToUser(user.id, volunteerRole.id);
+    user.status = UserStatus.ACTIVE;
+    await this.userRepository.update(user);
   }
 }

@@ -3,7 +3,6 @@ import { IEmailVerificationRepository } from '../../domain/interfaces/email-veri
 import { IEventPublisher } from '../../domain/interfaces/event-publisher.interface';
 import { VerifyEmailDto } from '../dtos/verify-email.dto';
 import { EmailVerificationValidator } from '../../domain/validators/email-verification.validator';
-import { UserStatus } from '../../domain/entities/user.entity';
 
 export class VerifyEmailUseCase {
   constructor(
@@ -14,7 +13,6 @@ export class VerifyEmailUseCase {
 
   async execute(dto: VerifyEmailDto): Promise<{ message: string }> {
     const verification = await this.emailVerificationRepository.findByToken(dto.token);
-
     if (!verification) {
       throw {
         http_status: 404,
@@ -26,7 +24,6 @@ export class VerifyEmailUseCase {
     await validator.validateWithCustomRules();
 
     const user = await this.userRepository.findById(verification.userId);
-
     if (!user) {
       throw {
         http_status: 404,
@@ -45,10 +42,6 @@ export class VerifyEmailUseCase {
     user.emailVerifiedAt = new Date(); 
     user.updatedAt = new Date();
 
-    if (user.verifiedPhone) {
-      user.status = UserStatus.ACTIVE;
-    }
-
     await this.userRepository.update(user); 
 
     verification.isUsed = true;
@@ -60,7 +53,7 @@ export class VerifyEmailUseCase {
       email: user.email,
       timestamp: new Date().toISOString()
     });
-
+    
     return {
       message: 'Email verified successfully'
     };
