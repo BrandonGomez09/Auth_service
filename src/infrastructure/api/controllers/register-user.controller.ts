@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { validate } from 'class-validator';
+import { plainToInstance } from 'class-transformer';
 import { RegisterUserUseCase } from '../../../application/use-cases/register-user.use-case';
 import { RegisterUserDto } from '../../../application/dtos/register-user.dto';
 
@@ -8,20 +9,16 @@ export class RegisterUserController {
 
   async handle(req: Request, res: Response): Promise<void> {
     try {
-      const dto = new RegisterUserDto(
-        req.body.names,
-        req.body.firstLastName,
-        req.body.secondLastName,
-        req.body.email,
-        req.body.password,
-        req.body.stateId,
-        req.body.municipalityId,
-        req.body.phoneNumber,
-        req.body.skillIds, 
-        req.body.availabilitySlots 
-      );
+      const transformedDto = plainToInstance(RegisterUserDto, req.body);
+      
+      if (Array.isArray(transformedDto)) {
+        throw new Error("Invalid input: Expected a single user object, received an array.");
+      }
+
+      const dto: RegisterUserDto = transformedDto;
       
       const errors = await validate(dto);
+      
       if (errors.length > 0) {
         res.status(422).json({
           success: false,
@@ -30,12 +27,12 @@ export class RegisterUserController {
             property: error.property,
             constraints: error.constraints
           }))
-        
         });
         return;
       }
 
       const result = await this.registerUserUseCase.execute(dto);
+      
       res.status(201).json({
         success: true,
         message: result.message,
