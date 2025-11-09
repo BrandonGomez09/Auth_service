@@ -7,11 +7,21 @@ export class CompleteProfileController {
 
   handle = async (req: Request, res: Response): Promise<void> => {
     try {
+      const userId = req.user?.userId;
+      
+      if (!userId) {
+        res.status(401).json({
+          success: false,
+          message: 'Unauthorized: User ID not found in token'
+        });
+        return;
+      }
+      
       const dto = new CompleteProfileDto(
-        req.body.userId,
+        userId, // USAMOS EL ID DEL TOKEN
         req.body.skillIds
       );
-
+      
       const result = await this.completeProfileUseCase.execute(dto);
 
       res.status(200).json({

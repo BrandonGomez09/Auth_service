@@ -16,7 +16,9 @@ export class RegisterUserController {
         req.body.password,
         req.body.stateId,
         req.body.municipalityId,
-        req.body.phoneNumber
+        req.body.phoneNumber,
+        req.body.skillIds, 
+        req.body.availabilitySlots 
       );
       
       const errors = await validate(dto);
@@ -28,6 +30,7 @@ export class RegisterUserController {
             property: error.property,
             constraints: error.constraints
           }))
+        
         });
         return;
       }
@@ -45,9 +48,7 @@ export class RegisterUserController {
             status: result.user.status,
             verifiedEmail: result.user.verifiedEmail,
             verifiedPhone: result.user.verifiedPhone
-          },
-          accessToken: result.accessToken,
-          refreshToken: result.refreshToken,
+          }
         }
       });
     } catch (error: any) {

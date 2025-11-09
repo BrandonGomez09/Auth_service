@@ -2,26 +2,30 @@ import { RegisterUserDto } from '../dtos/register-user.dto';
 import { IUserRepository } from '../../domain/interfaces/user.repository.interface';
 import { IPasswordHasher } from '../../domain/interfaces/password-hasher.interface';
 import { IEventPublisher } from '../../domain/interfaces/event-publisher.interface';
-import { IRoleRepository } from '../../domain/interfaces/role.repository.interface';
-import { ITokenGenerator } from '../../domain/interfaces/token-generator.interface';
 import { User, UserStatus } from '../../domain/entities/user.entity';
 import { UserValidator } from '../../domain/validators/user.validator';
 import { PasswordStrengthValidator } from '../../domain/validators/password-strength.validator';
+import { IRoleRepository } from '../../domain/interfaces/role.repository.interface'; // Nuevo
+import { IUserSkillRepository } from '../../domain/interfaces/user-skill.repository.interface'; // Nuevo
+import { ISkillRepository } from '../../domain/interfaces/skill.repository.interface'; // Nuevo
+import { IUserAvailabilityRepository } from '../../domain/interfaces/user-availability.repository.interface'; // Nuevo
+import { UserSkill } from '../../domain/entities/user-skill.entity'; // Nuevo
+import { UserAvailability } from '../../domain/entities/user-availability.entity'; // Nuevo
 
 export class RegisterUserUseCase {
   constructor(
     private readonly userRepository: IUserRepository,
-    private readonly roleRepository: IRoleRepository,
     private readonly passwordHasher: IPasswordHasher,
-    private readonly tokenGenerator: ITokenGenerator,
-    private readonly eventPublisher: IEventPublisher
+    private readonly eventPublisher: IEventPublisher,
+    private readonly roleRepository: IRoleRepository,
+    private readonly userSkillRepository: IUserSkillRepository,
+    private readonly skillRepository: ISkillRepository,
+    private readonly userAvailabilityRepository: IUserAvailabilityRepository
   ) {}
 
   async execute(dto: RegisterUserDto): Promise<{
     message: string;
     user: User;
-    accessToken: string;
-    refreshToken: string;
   }> {
     const existingUser = await this.userRepository.findByEmail(dto.email);
     if (existingUser) {
@@ -51,7 +55,6 @@ export class RegisterUserUseCase {
       false,
       null,
       null,
-   
       dto.stateId,
       dto.municipalityId,
       new Date(),
@@ -62,16 +65,39 @@ export class RegisterUserUseCase {
     await userValidator.validateWithCustomRules();
 
     const savedUser = await this.userRepository.save(newUser);
-    
-    const roles = await this.roleRepository.getUserRoles(savedUser.id);
-    const roleNames = roles.map(role => role.name);
-    
-    const accessToken = this.tokenGenerator.generateAccessToken(
-      savedUser.id,
-      savedUser.email,
-      roleNames
-    );
-    const refreshToken = this.tokenGenerator.generateRefreshToken(savedUser.id);
+    const volunteerRole = await this.roleRepository.findByName('Voluntario');
+    if (!volunteerRole) {
+       throw {
+        http_status: 500,
+        message: 'Volunteer role not found in system. Please contact administrator.'
+      };
+    }
+    await this.roleRepository.assignRoleToUser(savedUser.id, volunteerRole.id!);
+
+    if (dto.skillIds && dto.skillIds.length > 0) {
+      for (const skillId of dto.skillIds) {
+        const skill = await this.skillRepository.findById(skillId);
+        if (!skill || !skill.isActive) {
+          throw { http_status: 400, message: `Skill with ID ${skillId} not found or is inactive` };
+        }
+
+        const userSkill = new UserSkill(
+          0, savedUser.id, skillId, null, null, new Date(), new Date()
+        );
+        await this.userSkillRepository.create(userSkill);
+      }
+    }
+
+    if (dto.availabilitySlots && dto.availabilitySlots.length > 0) {
+      
+      for (const slot of dto.availabilitySlots) {
+        
+        const availability = new UserAvailability(
+          0, savedUser.id, slot.dayOfWeek, slot.startTime, slot.endTime, new Date(), new Date()
+        );
+        await this.userAvailabilityRepository.create(availability);
+      }
+    }
 
     await this.eventPublisher.publish('user.registered', {
       userId: savedUser.id,
@@ -81,9 +107,7 @@ export class RegisterUserUseCase {
     });
     return {
       message: 'User registered successfully. You can now login.',
-      user: savedUser,
-      accessToken,
-      refreshToken,
+      user: savedUser
     };
   }
 }
