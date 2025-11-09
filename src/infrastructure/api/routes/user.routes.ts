@@ -5,7 +5,8 @@ import {
   updateUserController,
   updateProfileController,
   deleteUserController,
-  completeProfileController
+  completeProfileController,
+  getMyProfileController
 } from '../dependencies/dependencies';
 import { AuthMiddleware } from '../../../middleware/auth.middleware'; 
 
@@ -14,6 +15,8 @@ const authMiddleware = new AuthMiddleware();
 const router = Router();
 
 router.get('/', getUsersPaginatedController.handle.bind(getUsersPaginatedController));
+
+router.get('/profile', authMiddleware.authenticate, getMyProfileController.handle.bind(getMyProfileController)); 
 
 router.get('/:id', authMiddleware.authenticate, getUserByIdController.handle.bind(getUserByIdController));
 

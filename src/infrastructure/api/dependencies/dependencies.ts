@@ -51,6 +51,10 @@ import { GetUserReputationHistoryUseCase } from '../../../application/use-cases/
 import { AssignVolunteerRoleUseCase } from '../../../application/use-cases/assign-volunteer-role.use-case';
 import { CompleteProfileUseCase } from '../../../application/use-cases/complete-profile.use-case';
 import { RegisterKitchenAdminUseCase } from '../../../application/use-cases/register-kitchen-admin.use-case';
+
+import { GetMyProfileUseCase } from '../../../application/use-cases/get-my-profile.use-case';
+import { GetMyProfileController } from '../controllers/get-my-profile.controller';
+
 import { RegisterUserController } from '../controllers/register-user.controller';
 import { LoginUserController } from '../controllers/login-user.controller';
 import { ValidateTokenController } from '../controllers/validate-token.controller';
@@ -102,7 +106,6 @@ const passwordHasher = new BcryptPasswordHasherService();
 const tokenGenerator = new JwtTokenGeneratorService();
 const eventPublisher = new RabbitMQEventPublisherService();
 
-// MODIFICACIÓN: Inyección de dependencias para el Registro Unificado.
 const registerUserUseCase = new RegisterUserUseCase(
   userRepository,
   passwordHasher,
@@ -282,6 +285,12 @@ const completeProfileUseCase = new CompleteProfileUseCase(
   assignVolunteerRoleUseCase
 );
 
+const getMyProfileUseCase = new GetMyProfileUseCase(
+  userRepository,
+  userSkillRepository,
+  userAvailabilityRepository
+);
+
 export const registerUserController = new RegisterUserController(registerUserUseCase);
 export const registerKitchenAdminController = new RegisterKitchenAdminController(registerKitchenAdminUseCase);
 export const loginUserController = new LoginUserController(loginUserUseCase);
@@ -316,5 +325,7 @@ export const getUserSchedulesController = new GetUserSchedulesController(getUser
 export const updateUserReputationController = new UpdateUserReputationController(updateUserReputationUseCase);
 export const getUserReputationHistoryController = new GetUserReputationHistoryController(getUserReputationHistoryUseCase);
 export const completeProfileController = new CompleteProfileController(completeProfileUseCase);
+// NUEVO CONTROLADOR EXPORTADO
+export const getMyProfileController = new GetMyProfileController(getMyProfileUseCase);
 
 export { tokenGenerator, eventPublisher };
