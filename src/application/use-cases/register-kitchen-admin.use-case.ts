@@ -1,55 +1,29 @@
 import { IUserRepository } from '../../domain/interfaces/user.repository.interface';
 import { IRoleRepository } from '../../domain/interfaces/role.repository.interface';
-import { IPasswordHasher } from '../../domain/interfaces/password-hasher.interface';
 import { IEventPublisher } from '../../domain/interfaces/event-publisher.interface';
 import { User, UserStatus } from '../../domain/entities/user.entity';
-import { UserValidator } from '../../domain/validators/user.validator';
-import { PasswordStrengthValidator } from '../../domain/validators/password-strength.validator';
 
 export class RegisterKitchenAdminUseCase {
   constructor(
     private readonly userRepository: IUserRepository,
     private readonly roleRepository: IRoleRepository,
-    private readonly passwordHasher: IPasswordHasher,
     private readonly eventPublisher: IEventPublisher
   ) {}
 
-  async execute(dto: any): Promise<{
-    success: boolean;
-    message: string;
-    userId: number;
-    email: string;
-  }> {
-    const { responsibleData, kitchenData, locationData } = dto;
-
-    if (!responsibleData || !kitchenData || !locationData) {
-      throw { http_status: 400, message: 'Missing required data sections (responsibleData, kitchenData, locationData)' };
-    }
-    if (!responsibleData.email || !responsibleData.password || !responsibleData.names) {
-      throw { http_status: 400, message: 'Missing essential responsible data (email, password, names)' };
-    }
-    
-    const existingUser = await this.userRepository.findByEmail(responsibleData.email);
-    if (existingUser) {
-      throw {
-        http_status: 409,
-        message: 'Email already registered'
-      };
+  async execute(dto: any): Promise<{ message: string }> {
+    if (!dto.email || !dto.password || !dto.names || !dto.firstLastName) {
+      throw { http_status: 400, message: 'Faltan datos obligatorios para el registro' };
     }
 
-    const passwordValidator = new PasswordStrengthValidator(responsibleData.password);
-    await passwordValidator.validate();
-
-    const hashedPassword = await this.passwordHasher.hash(responsibleData.password);
-    const newUser = new User(
+    const user = new User(
       0,
-      responsibleData.names,
-      responsibleData.firstLastName,
-      responsibleData.secondLastName,
-      responsibleData.email,
-      hashedPassword,
+      dto.names,
+      dto.firstLastName,
+      dto.secondLastName || '',
+      dto.email,
+      dto.password,
       null,
-      responsibleData.phoneNumber || null,
+      dto.phoneNumber || null,          
       0,
       null,
       UserStatus.PENDING,
@@ -57,67 +31,41 @@ export class RegisterKitchenAdminUseCase {
       false,
       null,
       null,
-      responsibleData.stateId,
-      responsibleData.municipalityId,
+      null,
+      null,
       new Date(),
       new Date(),
       null
     );
-    const userValidator = new UserValidator(newUser);
-    await userValidator.validateWithCustomRules();
 
-    const savedUser = await this.userRepository.save(newUser);
+    const createdUser = await this.userRepository.save(user);
 
-    const adminCocinaRole = await this.roleRepository.findByName('Admin_cocina');
-    if (!adminCocinaRole) {
-      throw {
-        http_status: 500,
-        message: 'Admin_cocina role not found in database'
-      };
+    const adminRole = await this.roleRepository.findByName('AdminCocina');
+    if (!adminRole) {
+      throw { http_status: 404, message: 'El rol AdminCocina no existe' };
     }
 
-    await this.roleRepository.assignRoleToUser(savedUser.id, adminCocinaRole.id!, savedUser.id);
+    await this.roleRepository.assignRoleToUser(createdUser.id, adminRole.id);
 
-    await this.eventPublisher.publish('user.registered', {
-      userId: savedUser.id,
-      email: savedUser.email,
-      names: savedUser.names,
-      firstLastName: savedUser.firstLastName,
-      secondLastName: savedUser.secondLastName,
-      timestamp: new Date().toISOString()
-    });
-    await this.eventPublisher.publish('kitchen.admin.registered', {
-      userId: savedUser.id,
-      userData: {
-        email: savedUser.email,
-        names: savedUser.names,
-        firstLastName: savedUser.firstLastName,
-        secondLastName: savedUser.secondLastName,
-        phoneNumber: savedUser.phoneNumber
+    await this.eventPublisher.publish('kitchen.requested', {
+      userId: createdUser.id,
+      fullName: `${createdUser.names} ${createdUser.firstLastName} ${createdUser.secondLastName}`,
+      email: createdUser.email,
+      kitchenName: dto.kitchenName,
+      description: dto.description,
+      contact: {
+        phone: dto.kitchenContactPhone,
+        email: dto.kitchenContactEmail
       },
-      kitchenData: {
-        name: kitchenData.name,
-        description: kitchenData.description,
-        contactPhone: kitchenData.contactPhone,
-        contactEmail: kitchenData.contactEmail,
-        imageUrl: kitchenData.imageUrl || null
-      },
-      locationData: {
-        streetAddress: locationData.streetAddress,
-        neighborhood: locationData.neighborhood,
-        stateId: locationData.stateId,
-        municipalityId: locationData.municipalityId,
-        postalCode: locationData.postalCode,
-        capacity: locationData.capacity || null
+      location: {
+        address: dto.address,
+        colony: dto.colony,
+        state: dto.state,
+        postalCode: dto.postalCode
       },
       timestamp: new Date().toISOString()
     });
 
-    return {
-      success: true,
-      message: 'Kitchen admin registered successfully. Please verify your email to activate the kitchen.',
-      userId: savedUser.id,
-      email: savedUser.email
-    };
+    return { message: 'Administrador de cocina registrado exitosamente' };
   }
 }

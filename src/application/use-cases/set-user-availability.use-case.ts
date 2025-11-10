@@ -1,6 +1,17 @@
 import { IUserAvailabilityRepository } from '../../domain/interfaces/user-availability.repository.interface';
 import { IUserRepository } from '../../domain/interfaces/user.repository.interface';
-import { UserAvailability } from '../../domain/entities/user-availability.entity';
+import { UserAvailability, DayOfWeek } from '../../domain/entities/user-availability.entity';
+
+interface AvailabilitySlotDTO {
+  dayOfWeek: DayOfWeek;
+  startTime: string;
+  endTime: string;
+}
+
+interface SetAvailabilityDTO {
+  userId: number;
+  availabilitySlots: AvailabilitySlotDTO[];
+}
 
 export class SetUserAvailabilityUseCase {
   constructor(
@@ -8,20 +19,23 @@ export class SetUserAvailabilityUseCase {
     private readonly userRepository: IUserRepository
   ) {}
 
-  async execute(dto: any): Promise<UserAvailability[]> {
-    if (!dto.userId || !dto.availabilitySlots || !Array.isArray(dto.availabilitySlots)) {
+  async execute(dto: SetAvailabilityDTO): Promise<UserAvailability[]> {
+    if (!dto.userId || !Array.isArray(dto.availabilitySlots)) {
       throw new Error('User ID and valid availabilitySlots array are required');
     }
-    
+
     const user = await this.userRepository.findById(dto.userId);
-    if (!user) {
-      throw new Error('User not found');
-    }
+    if (!user) throw new Error('User not found');
 
     for (let i = 0; i < dto.availabilitySlots.length; i++) {
       const slot = dto.availabilitySlots[i];
+
+      if (!slot.dayOfWeek || !slot.startTime || !slot.endTime) {
+        throw new Error(`Incomplete slot data at index ${i}`);
+      }
+
       if (slot.startTime >= slot.endTime) {
-        throw new Error(`Invalid time range for ${slot.dayOfWeek}: start time must be before end time`);
+        throw new Error(`Invalid range for ${slot.dayOfWeek}`);
       }
 
       for (let j = i + 1; j < dto.availabilitySlots.length; j++) {
@@ -38,7 +52,14 @@ export class SetUserAvailabilityUseCase {
       }
     }
 
-    await this.userAvailabilityRepository.deleteByUserId(dto.userId);
+    const uniqueDays: DayOfWeek[] = [
+      ...new Set(dto.availabilitySlots.map((s: AvailabilitySlotDTO) => s.dayOfWeek)),
+    ];
+
+    for (const day of uniqueDays) {
+      await this.userAvailabilityRepository.deleteByUserIdAndDay(dto.userId, day);
+    }
+
     const availabilities: UserAvailability[] = [];
 
     for (const slot of dto.availabilitySlots) {
@@ -51,6 +72,7 @@ export class SetUserAvailabilityUseCase {
         new Date(),
         new Date()
       );
+
       const created = await this.userAvailabilityRepository.create(availability);
       availabilities.push(created);
     }
@@ -63,12 +85,7 @@ export class SetUserAvailabilityUseCase {
     return hours * 60 + minutes;
   }
 
-  private hasOverlap(
-    start1: number,
-    end1: number,
-    start2: number,
-    end2: number
-  ): boolean {
+  private hasOverlap(start1: number, end1: number, start2: number, end2: number): boolean {
     return start1 < end2 && start2 < end1;
   }
 }

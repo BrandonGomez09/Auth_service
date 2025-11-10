@@ -1,21 +1,22 @@
 import { AppDataSource } from '../data-source';
 import { RoleSchema } from '../../database/schemas/role.schema';
 import { SkillSchema } from '../../database/schemas/skill.schema';
+import { UserSchema, UserStatus } from '../../database/schemas/user.schema';
+import { UserRoleSchema } from '../../database/schemas/user-role.schema';
+import { BcryptPasswordHasherService } from '../../services/bcrypt-password-hasher.service';
+
 
 const seedRoles = async () => {
   const roleRepository = AppDataSource.getRepository(RoleSchema);
-
   const rolesToSeed = [
     { name: 'Voluntario', description: 'Rol básico para voluntarios.', level: 1 },
     { name: 'Admin_cocina', description: 'Administrador de cocina.', level: 2 },
     { name: 'Super_admin', description: 'Administrador total del sistema.', level: 3 },
   ];
-
   for (const roleData of rolesToSeed) {
     const roleExists = await roleRepository.findOne({
       where: { name: roleData.name },
     });
-
     if (!roleExists) {
       console.log(`Creando rol: ${roleData.name}`);
       const newRole = roleRepository.create(roleData);
@@ -24,9 +25,59 @@ const seedRoles = async () => {
   }
 };
 
+
+const seedSuperAdmin = async () => {
+  const userRepository = AppDataSource.getRepository(UserSchema);
+  const roleRepository = AppDataSource.getRepository(RoleSchema);
+  const userRoleRepository = AppDataSource.getRepository(UserRoleSchema);
+  const passwordHasher = new BcryptPasswordHasherService();
+
+  const SUPER_ADMIN_EMAIL = 'superadmin@bi.com';
+  const DEFAULT_PASSWORD = 'Super@dm1n2025!';
+  
+  const superAdminRole = await roleRepository.findOne({ where: { name: 'Super_admin' } });
+  if (!superAdminRole) {
+    console.error('❌ Error: El rol Super_admin no existe. Ejecute seedRoles primero.');
+    return;
+  }
+
+  let superAdminUser = await userRepository.findOne({ where: { email: SUPER_ADMIN_EMAIL } });
+
+  if (!superAdminUser) {
+    console.log(`🌱 Creando Usuario Super Admin: ${SUPER_ADMIN_EMAIL}`);
+    const hashedPassword = await passwordHasher.hash(DEFAULT_PASSWORD);
+    
+    const newUser = userRepository.create({
+      email: SUPER_ADMIN_EMAIL,
+      passwordHash: hashedPassword,
+      names: 'Admin',
+      firstLastName: 'Super',
+      secondLastName: 'System',
+      reputationScore: 100,
+      status: UserStatus.ACTIVE,
+      verifiedEmail: true,
+      verifiedPhone: true,
+      emailVerifiedAt: new Date(),
+      phoneVerifiedAt: new Date(),
+    });
+    
+    superAdminUser = await userRepository.save(newUser);
+    
+    const userRole = userRoleRepository.create({
+      userId: superAdminUser.id,
+      roleId: superAdminRole.id,
+      assignedBy: superAdminUser.id,
+      isPrimary: true,
+    });
+    await userRoleRepository.save(userRole);
+    
+    console.log('✅ Usuario Super Admin creado y rol asignado. Contraseña por defecto: Super@dm1n2025!');
+  }
+};
+
+
 const seedSkills = async () => {
   const skillRepository = AppDataSource.getRepository(SkillSchema);
-
   const skillsToSeed = [
     'Cocinero',
     'Mesero',
@@ -35,12 +86,10 @@ const seedSkills = async () => {
     'Ayudante de cocina',
     'Personal de apoyo (Multi-habilidades)',
   ];
-
   for (const skillName of skillsToSeed) {
     const skillExists = await skillRepository.findOne({
       where: { name: skillName },
     });
-
     if (!skillExists) {
       console.log(`Creando habilidad: ${skillName}`);
       const newSkill = skillRepository.create({
@@ -56,6 +105,7 @@ const seedSkills = async () => {
 export const runSeeds = async () => {
   try {
     await seedRoles();
+    await seedSuperAdmin(); 
     await seedSkills();
   } catch (error) {
     console.error('❌ Error durante el sembrado de la base de datos:', error);

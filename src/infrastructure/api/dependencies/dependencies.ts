@@ -325,7 +325,6 @@ export const getUserSchedulesController = new GetUserSchedulesController(getUser
 export const updateUserReputationController = new UpdateUserReputationController(updateUserReputationUseCase);
 export const getUserReputationHistoryController = new GetUserReputationHistoryController(getUserReputationHistoryUseCase);
 export const completeProfileController = new CompleteProfileController(completeProfileUseCase);
-// NUEVO CONTROLADOR EXPORTADO
 export const getMyProfileController = new GetMyProfileController(getMyProfileUseCase);
 
 export { tokenGenerator, eventPublisher };

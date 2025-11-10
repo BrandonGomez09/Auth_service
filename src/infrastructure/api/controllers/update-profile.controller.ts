@@ -16,7 +16,6 @@ export class UpdateProfileController {
         return;
       }
 
-      // Pasamos todo el body al caso de uso, dejando la validación de campos opcionales al CU
       const dto = req.body; 
 
       const updatedUser = await this.updateProfileUseCase.execute(userId, dto);

@@ -8,4 +8,5 @@ export interface IUserAvailabilityRepository {
   update(availability: UserAvailability): Promise<UserAvailability>;
   delete(id: number): Promise<void>;
   deleteByUserId(userId: number): Promise<void>;
+  deleteByUserIdAndDay(userId: number, dayOfWeek: DayOfWeek): Promise<void>;
 }

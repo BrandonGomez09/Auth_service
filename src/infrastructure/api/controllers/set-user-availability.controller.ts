@@ -12,32 +12,33 @@ export class SetUserAvailabilityController {
       if (!userId) {
         res.status(401).json({
           success: false,
-          message: 'Unauthorized'
+          message: 'Unauthorized',
         });
         return;
       }
 
       if (!Array.isArray(availabilitySlots)) {
-         res.status(400).json({
+        res.status(400).json({
           success: false,
-          message: 'availabilitySlots must be an array'
+          message: 'availabilitySlots must be an array',
         });
         return;
       }
-      
-      const dto = { userId: userId, availabilitySlots: availabilitySlots };
-      const availability = await this.setUserAvailabilityUseCase.execute(dto);
-      
+
+      const dto = { userId, availabilitySlots };
+      const updatedAvailability = await this.setUserAvailabilityUseCase.execute(dto);
+
       res.status(200).json({
         success: true,
-        message: 'Availability set successfully',
-        data: availability
+        message: 'Availability updated successfully',
+        data: updatedAvailability,
       });
     } catch (error: any) {
+      console.error('❌ Error updating availability:', error);
       res.status(error.http_status || 500).json({
         success: false,
-        message: error.message || 'Error setting availability',
-        validations: error.validations
+        message: error.message || 'Error updating availability',
+        validations: error.validations,
       });
     }
   };
