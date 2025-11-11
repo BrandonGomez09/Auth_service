@@ -1,17 +1,6 @@
 import { IUserAvailabilityRepository } from '../../domain/interfaces/user-availability.repository.interface';
 import { IUserRepository } from '../../domain/interfaces/user.repository.interface';
-import { UserAvailability, DayOfWeek } from '../../domain/entities/user-availability.entity';
-
-interface AvailabilitySlotDTO {
-  dayOfWeek: DayOfWeek;
-  startTime: string;
-  endTime: string;
-}
-
-interface SetAvailabilityDTO {
-  userId: number;
-  availabilitySlots: AvailabilitySlotDTO[];
-}
+import { DayOfWeek, UserAvailability } from '../../domain/entities/user-availability.entity';
 
 export class SetUserAvailabilityUseCase {
   constructor(
@@ -19,7 +8,11 @@ export class SetUserAvailabilityUseCase {
     private readonly userRepository: IUserRepository
   ) {}
 
-  async execute(dto: SetAvailabilityDTO): Promise<UserAvailability[]> {
+  async execute(dto: any): Promise<{
+    message: string;
+    userId: number;
+    updatedSlots: UserAvailability[];
+  }> {
     if (!dto.userId || !Array.isArray(dto.availabilitySlots)) {
       throw new Error('User ID and valid availabilitySlots array are required');
     }
@@ -27,65 +20,58 @@ export class SetUserAvailabilityUseCase {
     const user = await this.userRepository.findById(dto.userId);
     if (!user) throw new Error('User not found');
 
-    for (let i = 0; i < dto.availabilitySlots.length; i++) {
-      const slot = dto.availabilitySlots[i];
+    const currentAvailabilities = await this.userAvailabilityRepository.findByUserId(dto.userId);
 
-      if (!slot.dayOfWeek || !slot.startTime || !slot.endTime) {
-        throw new Error(`Incomplete slot data at index ${i}`);
-      }
+    const incomingMap = new Map(
+      dto.availabilitySlots.map((slot: any) => [slot.dayOfWeek, slot])
+    );
 
-      if (slot.startTime >= slot.endTime) {
-        throw new Error(`Invalid range for ${slot.dayOfWeek}`);
-      }
+    const updatedSlots: UserAvailability[] = [];
 
-      for (let j = i + 1; j < dto.availabilitySlots.length; j++) {
-        const otherSlot = dto.availabilitySlots[j];
-        if (slot.dayOfWeek === otherSlot.dayOfWeek) {
-          const slot1Start = this.timeToMinutes(slot.startTime);
-          const slot1End = this.timeToMinutes(slot.endTime);
-          const slot2Start = this.timeToMinutes(otherSlot.startTime);
-          const slot2End = this.timeToMinutes(otherSlot.endTime);
-          if (this.hasOverlap(slot1Start, slot1End, slot2Start, slot2End)) {
-            throw new Error(`Time slots overlap on ${slot.dayOfWeek}`);
-          }
+    for (const existing of currentAvailabilities) {
+      const incoming = incomingMap.get(existing.dayOfWeek) as { startTime: string; endTime: string } | undefined;
+
+      if (!incoming) {
+        await this.userAvailabilityRepository.delete(existing.id);
+      } else {
+        if (
+          existing.startTime !== incoming.startTime ||
+          existing.endTime !== incoming.endTime
+        ) {
+          existing.startTime = incoming.startTime;
+          existing.endTime = incoming.endTime;
+          existing.updatedAt = new Date();
+
+          const updated = await this.userAvailabilityRepository.update(existing);
+          updatedSlots.push(updated);
+        } else {
+          updatedSlots.push(existing);
         }
+
+        incomingMap.delete(existing.dayOfWeek);
       }
     }
 
-    const uniqueDays: DayOfWeek[] = [
-      ...new Set(dto.availabilitySlots.map((s: AvailabilitySlotDTO) => s.dayOfWeek)),
-    ];
-
-    for (const day of uniqueDays) {
-      await this.userAvailabilityRepository.deleteByUserIdAndDay(dto.userId, day);
-    }
-
-    const availabilities: UserAvailability[] = [];
-
-    for (const slot of dto.availabilitySlots) {
-      const availability = new UserAvailability(
+    for (const [dayOfWeek, slot] of incomingMap.entries()) {
+      const typedSlot = slot as { startTime: string; endTime: string };
+      const newAvailability = new UserAvailability(
         0,
         dto.userId,
-        slot.dayOfWeek,
-        slot.startTime,
-        slot.endTime,
+        DayOfWeek[dayOfWeek as keyof typeof DayOfWeek],
+        typedSlot.startTime,
+        typedSlot.endTime,
         new Date(),
         new Date()
       );
 
-      const created = await this.userAvailabilityRepository.create(availability);
-      availabilities.push(created);
+      const created = await this.userAvailabilityRepository.create(newAvailability);
+      updatedSlots.push(created);
     }
 
-    return availabilities;
-  }
-
-  private timeToMinutes(time: string): number {
-    const [hours, minutes] = time.split(':').map(Number);
-    return hours * 60 + minutes;
-  }
-
-  private hasOverlap(start1: number, end1: number, start2: number, end2: number): boolean {
-    return start1 < end2 && start2 < end1;
+    return {
+      message: 'Disponibilidad actualizada correctamente',
+      userId: dto.userId,
+      updatedSlots
+    };
   }
 }

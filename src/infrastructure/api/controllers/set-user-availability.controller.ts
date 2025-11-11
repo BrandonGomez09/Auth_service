@@ -4,42 +4,40 @@ import { SetUserAvailabilityUseCase } from '../../../application/use-cases/set-u
 export class SetUserAvailabilityController {
   constructor(private readonly setUserAvailabilityUseCase: SetUserAvailabilityUseCase) {}
 
-  handle = async (req: Request, res: Response): Promise<void> => {
+  async handle(req: Request, res: Response): Promise<Response> {
     try {
-      const userId = req.user?.userId;
-      const availabilitySlots = req.body.availabilitySlots;
-
+      const userId = (req as any).user?.id;
       if (!userId) {
-        res.status(401).json({
-          success: false,
-          message: 'Unauthorized',
-        });
-        return;
+        return res.status(401).json({ message: 'Token inválido o no proporcionado' });
       }
+
+      const { availabilitySlots } = req.body;
 
       if (!Array.isArray(availabilitySlots)) {
-        res.status(400).json({
-          success: false,
-          message: 'availabilitySlots must be an array',
+        return res.status(400).json({
+          message: 'El campo "availabilitySlots" debe ser un arreglo de objetos válidos',
         });
-        return;
       }
 
-      const dto = { userId, availabilitySlots };
-      const updatedAvailability = await this.setUserAvailabilityUseCase.execute(dto);
+      for (const slot of availabilitySlots) {
+        if (!slot.dayOfWeek || !slot.startTime || !slot.endTime) {
+          return res.status(400).json({
+            message: 'Cada slot debe tener dayOfWeek, startTime y endTime',
+          });
+        }
+      }
 
-      res.status(200).json({
-        success: true,
-        message: 'Availability updated successfully',
-        data: updatedAvailability,
+      const result = await this.setUserAvailabilityUseCase.execute({
+        userId,
+        availabilitySlots,
       });
+
+      return res.status(200).json(result);
     } catch (error: any) {
-      console.error('❌ Error updating availability:', error);
-      res.status(error.http_status || 500).json({
-        success: false,
-        message: error.message || 'Error updating availability',
-        validations: error.validations,
+      console.error('❌ Error en SetUserAvailabilityController:', error);
+      return res.status(500).json({
+        message: error.message || 'Error al actualizar disponibilidad',
       });
     }
-  };
+  }
 }

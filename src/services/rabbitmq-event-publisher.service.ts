@@ -8,7 +8,7 @@ export class RabbitMQEventPublisherService implements IEventPublisher {
   private readonly exchange: string;
   private readonly exchangeType: string;
 
-  constructor() {
+  constructor() { 
     this.exchange = rabbitmqConfig.exchange;
     this.exchangeType = rabbitmqConfig.exchangeType;
   }
