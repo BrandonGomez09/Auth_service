@@ -19,6 +19,7 @@ export class AuthMiddleware {
   constructor() {
     this.tokenGenerator = new JwtTokenGeneratorService();
   }
+
   authenticate = (req: Request, res: Response, next: NextFunction): void => {
     try {
       const authHeader = req.headers.authorization;
@@ -26,12 +27,21 @@ export class AuthMiddleware {
       if (!authHeader || !authHeader.startsWith('Bearer ')) {
         res.status(401).json({
           success: false,
-          message: 'No token provided'
+          message: 'Token inválido o no proporcionado'
         });
         return;
       }
 
       const token = authHeader.substring(7); 
+      
+      if (!token || token.trim() === '') {
+        res.status(401).json({
+          success: false,
+          message: 'Token inválido o no proporcionado'
+        });
+        return;
+      }
+
       const payload = this.tokenGenerator.verifyAccessToken(token);
 
       req.user = {
@@ -41,10 +51,11 @@ export class AuthMiddleware {
       };
 
       next();
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Error en autenticación:', error.message);
       res.status(401).json({
         success: false,
-        message: 'Invalid or expired token'
+        message: 'Token inválido o expirado'
       });
     }
   };
@@ -54,7 +65,7 @@ export class AuthMiddleware {
       if (!req.user) {
         res.status(401).json({
           success: false,
-          message: 'Authentication required'
+          message: 'Autenticación requerida'
         });
         return;
       }
@@ -65,7 +76,9 @@ export class AuthMiddleware {
       if (!hasRole) {
         res.status(403).json({
           success: false,
-          message: 'Insufficient permissions'
+          message: 'Permisos insuficientes',
+          requiredRoles: allowedRoles,
+          userRoles: userRoles
         });
         return;
       }
