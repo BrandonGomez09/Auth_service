@@ -44,6 +44,7 @@ export class RabbitMQEventPublisherService implements IEventPublisher {
     );
 
     console.log(`📤 [AUTH] Event published: ${eventName}`);
+    
     console.log('📦 [AUTH] Payload:', message);
   }
 
