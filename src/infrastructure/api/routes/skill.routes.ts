@@ -3,12 +3,15 @@ import {
   getSkillsController,
   getUserSkillsController,
   addUserSkillController,
-  removeUserSkillController
+  removeUserSkillController,
+  getUserByEmailController
 } from '../dependencies/dependencies';
 import { AuthMiddleware } from '../../../middleware/auth.middleware'; 
 
 const router = Router();
 const authMiddleware = new AuthMiddleware(); 
+
+router.get("/by-email/:email", getUserByEmailController.handle.bind(getUserByEmailController));
 
 router.get('/', getSkillsController.handle.bind(getSkillsController));
 

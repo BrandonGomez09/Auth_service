@@ -16,7 +16,7 @@ import { BcryptPasswordHasherService } from '../../../services/bcrypt-password-h
 import { JwtTokenGeneratorService } from '../../../services/jwt-token-generator.service';
 import { RabbitMQEventPublisherService } from '../../../services/rabbitmq-event-publisher.service';
 
-import { 
+import {
   RegisterUserUseCase,
   LoginUserUseCase,
   ValidateTokenUseCase,
@@ -30,6 +30,7 @@ import {
   AssignRoleUseCase,
   RemoveRoleUseCase,
   GetUserPermissionsUseCase,
+  GetUserByEmailUseCase,
   CheckUserPermissionUseCase,
   GetUserByIdUseCase,
   GetUsersPaginatedUseCase,
@@ -51,8 +52,9 @@ import {
   GetUserReputationHistoryUseCase,
   AssignVolunteerRoleUseCase,
   CompleteProfileUseCase,
-  RegisterKitchenAdminUseCase
+  RegisterAdminKitchenUseCase
 } from '../../../application/use-cases';
+
 import { UpdateUserAvailabilityUseCase } from '../../../application/use-cases/update-user-availability.use-case';
 import { GetMyProfileUseCase } from '../../../application/use-cases/get-my-profile.use-case';
 
@@ -72,6 +74,7 @@ import {
   GetUserPermissionsController,
   CheckUserPermissionController,
   GetUserByIdController,
+  GetUserByEmailController,
   GetUsersPaginatedController,
   UpdateUserController,
   UpdateProfileController,
@@ -93,6 +96,7 @@ import {
   RegisterKitchenAdminController,
   GetMyAvailabilityController
 } from '../controllers';
+
 import { UpdateUserAvailabilityController } from '../controllers/update-user-availability.controller';
 import { DeleteUserAvailabilityController } from '../controllers/delete-user-availability.controller';
 import { GetMyProfileController } from '../controllers/get-my-profile.controller';
@@ -108,10 +112,11 @@ const userSkillRepository = new UserSkillAdapter(AppDataSource);
 const userAvailabilityRepository = new UserAvailabilityAdapter();
 const userScheduleRepository = new UserScheduleAdapter(AppDataSource);
 const userReputationHistoryRepository = new UserReputationHistoryAdapter(AppDataSource);
+const getUserByEmailUseCase = new GetUserByEmailUseCase(userRepository);
 
 const passwordHasher = new BcryptPasswordHasherService();
 const tokenGenerator = new JwtTokenGeneratorService();
-const eventPublisher = new RabbitMQEventPublisherService(); 
+const eventPublisher = new RabbitMQEventPublisherService();
 
 const registerUserUseCase = new RegisterUserUseCase(
   userRepository,
@@ -123,10 +128,9 @@ const registerUserUseCase = new RegisterUserUseCase(
   userAvailabilityRepository
 );
 
-const registerKitchenAdminUseCase = new RegisterKitchenAdminUseCase(
+const registerKitchenAdminUseCase = new RegisterAdminKitchenUseCase(
   userRepository,
-  roleRepository,
-  eventPublisher
+  roleRepository
 );
 
 const loginUserUseCase = new LoginUserUseCase(
@@ -137,10 +141,12 @@ const loginUserUseCase = new LoginUserUseCase(
 );
 
 const validateTokenUseCase = new ValidateTokenUseCase(tokenGenerator, userRepository);
+
 const refreshTokenUseCase = new RefreshTokenUseCase(tokenGenerator, userRepository, roleRepository);
 
 const verifyEmailUseCase = new VerifyEmailUseCase(userRepository, emailVerificationRepository, eventPublisher);
 const resendEmailVerificationUseCase = new ResendEmailVerificationUseCase(userRepository, emailVerificationRepository, tokenGenerator, eventPublisher);
+
 const verifyPhoneUseCase = new VerifyPhoneUseCase(userRepository, phoneVerificationRepository, eventPublisher);
 const resendPhoneVerificationUseCase = new ResendPhoneVerificationUseCase(userRepository, phoneVerificationRepository, tokenGenerator, eventPublisher);
 
@@ -177,6 +183,7 @@ const completeProfileUseCase = new CompleteProfileUseCase(
   skillRepository,
   new AssignVolunteerRoleUseCase(userRepository, roleRepository)
 );
+
 const getMyProfileUseCase = new GetMyProfileUseCase(userRepository, userSkillRepository, userAvailabilityRepository);
 
 export const registerUserController = new RegisterUserController(registerUserUseCase);
@@ -193,6 +200,7 @@ export const resetPasswordController = new ResetPasswordController(resetPassword
 export const assignRoleController = new AssignRoleController(assignRoleUseCase);
 export const removeRoleController = new RemoveRoleController(removeRoleUseCase);
 export const getUserPermissionsController = new GetUserPermissionsController(getUserPermissionsUseCase);
+export const getUserByEmailController = new GetUserByEmailController(getUserByEmailUseCase);
 export const checkUserPermissionController = new CheckUserPermissionController(checkUserPermissionUseCase);
 export const getUserByIdController = new GetUserByIdController(new GetUserByIdUseCase(userRepository));
 export const getUsersPaginatedController = new GetUsersPaginatedController(new GetUsersPaginatedUseCase(userRepository));
@@ -216,6 +224,6 @@ export const updateUserReputationController = new UpdateUserReputationController
 export const getUserReputationHistoryController = new GetUserReputationHistoryController(getUserReputationHistoryUseCase);
 export const completeProfileController = new CompleteProfileController(completeProfileUseCase);
 export const getMyProfileController = new GetMyProfileController(getMyProfileUseCase);
-export const getMyAvailabilityController = new GetMyAvailabilityController(getUserAvailabilityUseCase); // <--- Agregar
+export const getMyAvailabilityController = new GetMyAvailabilityController(getUserAvailabilityUseCase);
 
 export { tokenGenerator, eventPublisher };

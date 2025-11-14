@@ -33,4 +33,5 @@ export * from './update-user-reputation.use-case';
 export * from './get-user-reputation-history.use-case';
 export * from './assign-volunteer-role.use-case';
 export * from './complete-profile.use-case';
-export * from './register-kitchen-admin.use-case';
+export * from './register-admin-kitchen.use-case';
+export * from './get-user-by-email.use-case'
