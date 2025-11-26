@@ -130,7 +130,8 @@ const registerUserUseCase = new RegisterUserUseCase(
 
 const registerKitchenAdminUseCase = new RegisterAdminKitchenUseCase(
   userRepository,
-  roleRepository
+  roleRepository,
+  passwordHasher
 );
 
 const loginUserUseCase = new LoginUserUseCase(
@@ -226,4 +227,4 @@ export const completeProfileController = new CompleteProfileController(completeP
 export const getMyProfileController = new GetMyProfileController(getMyProfileUseCase);
 export const getMyAvailabilityController = new GetMyAvailabilityController(getUserAvailabilityUseCase);
 
-export { tokenGenerator, eventPublisher };
+export { tokenGenerator, eventPublisher, registerKitchenAdminUseCase };

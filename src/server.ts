@@ -4,13 +4,15 @@ config();
 import app from './app';
 import { initializeDatabase, closeDatabase } from './config/data-source';
 import { eventPublisher } from './infrastructure/api/dependencies/dependencies';
+import { startConsumers } from './consumers';
 import { runSeeds } from './config/seed/seed';
 
-const PORT = parseInt(process.env.AUTH_API_PORT || '3001');
+const PORT = process.env.PORT;
 
 const startServer = async () => {
   try {
     console.log('🚀 Starting Auth-User Service...');
+    
     console.log('📦 Connecting to database...');
     await initializeDatabase();
     console.log('✅ Database connected successfully');
@@ -19,13 +21,18 @@ const startServer = async () => {
     await runSeeds();
     console.log('✅ Seeds executed successfully');
 
-    console.log('📨 Connecting to RabbitMQ...');
-    console.log('--- DEBUGGING RABBITMQ ---');
+    console.log('📥 Starting RabbitMQ Consumers...');
+    await startConsumers();
+    console.log('✅ Consumers started');
+
+    console.log('📨 Connecting publisher to RabbitMQ...');
     await eventPublisher.connect();
-    
+    console.log('✅ Publisher connected');
+
     app.listen(PORT, () => {
       console.log(`Server running in port: http://localhost:${PORT}`);
     });
+
   } catch (error) {
     console.error('❌ Failed to start server:', error);
     process.exit(1);
@@ -44,6 +51,7 @@ const gracefulShutdown = async (signal: string) => {
 
     console.log('✅ Server closed gracefully');
     process.exit(0);
+
   } catch (error) {
     console.error('❌ Error during graceful shutdown:', error);
     process.exit(1);
