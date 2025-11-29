@@ -9,26 +9,19 @@ export class KitchenApprovedConsumerService {
   constructor(private readonly registerUseCase: RegisterAdminKitchenUseCase) {}
 
   async connect() {
-    if (!rabbitmqConfig.url) {
-      throw new Error("RabbitMQ URL is undefined");
-    }
-
     this.connection = await amqp.connect(rabbitmqConfig.url);
     this.channel = await this.connection.createChannel();
 
     await this.channel.assertExchange(rabbitmqConfig.exchange, "topic", {
-      durable: true,
+      durable: true
     });
 
-    const authQueue = rabbitmqConfig.queues.auth;
-    if (!authQueue) {
-      throw new Error("❌ rabbitmqConfig.queues.auth is undefined");
-    }
+    const queue = rabbitmqConfig.queues.auth;
 
-    await this.channel.assertQueue(authQueue, { durable: true });
+    await this.channel.assertQueue(queue, { durable: true });
 
     await this.channel.bindQueue(
-      authQueue,
+      queue,
       rabbitmqConfig.exchange,
       rabbitmqConfig.routingKeys.kitchenAdminRegistered
     );
@@ -39,42 +32,47 @@ export class KitchenApprovedConsumerService {
   async start() {
     if (!this.channel) await this.connect();
 
-    const authQueue = rabbitmqConfig.queues.auth!;
-    
-    this.channel!.consume(
-      authQueue,
+    const queue = rabbitmqConfig.queues.auth;
+
+    const channel = this.channel!;
+    channel.consume(
+      queue,
       async (msg) => {
         if (!msg) return;
 
-        const raw = msg.content.toString();
         let data: any;
 
         try {
-          data = JSON.parse(raw);
-        } catch {
-          console.error("❌ Invalid JSON in received event:", raw);
-          this.channel!.ack(msg); 
-          return;
+          data = JSON.parse(msg.content.toString());
+        } catch (err) {
+          console.error("❌ Invalid JSON in event");
+          return channel.ack(msg);
         }
 
         console.log("📦 [AUTH] Event received:", data);
 
-        const required = ["names", "firstLastName", "email", "phoneNumber", "password"];
+        const requiredFields = [
+          "kitchenId",
+          "names",
+          "firstLastName",
+          "email",
+          "phoneNumber",
+          "password"
+        ];
 
-        for (const field of required) {
+        for (const field of requiredFields) {
           if (!data[field]) {
-            console.error(`❌ Missing field '${field}' in event`);
-            this.channel!.ack(msg);
-            return;
+            console.error(`❌ Missing field '${field}'`);
+            return channel.ack(msg);
           }
         }
 
         try {
           await this.registerUseCase.execute(data);
-          this.channel!.ack(msg);
+          channel.ack(msg);
         } catch (err) {
           console.error("❌ Error processing event:", err);
-          this.channel!.nack(msg, false, false); 
+          channel.nack(msg, false, false);
         }
       },
       { noAck: false }
