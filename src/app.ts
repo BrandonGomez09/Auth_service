@@ -1,5 +1,6 @@
 import express, { Request, Response } from 'express'; 
 import cors from 'cors';
+import path from 'path';
 import Authroutes from './infrastructure/api/routes/auth.routes';
 import PasswordRoutes from './infrastructure/api/routes/password.routes';
 import permissonRoutes from './infrastructure/api/routes/permission.routes';
@@ -16,6 +17,7 @@ app.use(cors({ origin: '*' }));
 
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(express.static(path.join(__dirname, 'views')));
 
 app.get('/health', (_req: Request, res: Response) => { 
   res.json({

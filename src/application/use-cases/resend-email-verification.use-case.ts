@@ -12,59 +12,52 @@ export class ResendEmailVerificationUseCase {
     private readonly eventPublisher: IEventPublisher
   ) {}
 
-  async execute(dto: any): Promise<{ message: string }> {
-    if (!dto.email) {
-       throw { http_status: 400, message: 'Email is required' };
+  async execute(dto: { userId: number }): Promise<{ message: string }> {
+    if (!dto.userId) {
+      throw { http_status: 400, message: 'User ID is required' };
     }
 
-    const user = await this.userRepository.findByEmail(dto.email.toLowerCase());
+    const user = await this.userRepository.findById(dto.userId);
     if (!user) {
-      return {
-        message: 'If the email exists, a verification link will be sent.'
-      };
+      throw { http_status: 404, message: 'User not found' };
     }
 
     if (user.verifiedEmail) {
-      throw {
-        http_status: 400,
-        message: 'Email is already verified'
-      };
+      throw { http_status: 400, message: 'Email is already verified' };
     }
 
     const lastVerification = await this.emailVerificationRepository.findLatestByUserId(user.id);
-
     if (lastVerification) {
-      const timeSinceLastSent = Date.now() - lastVerification.createdAt.getTime();
-      const oneMinute = 60 * 1000;
-
-      if (timeSinceLastSent < oneMinute) {
-        throw {
-          http_status: 429,
-          message: 'Please wait before requesting a new verification email'
-        };
+      const diff = Date.now() - lastVerification.createdAt.getTime();
+      if (diff < 60_000) {
+        throw { http_status: 429, message: 'Please wait before requesting a new verification email' };
       }
     }
 
     const verificationToken = this.tokenGenerator.generateRandomToken();
+
     const emailVerification = new EmailVerification(
       0,
       user.id,
       verificationToken,
-      new Date(Date.now() + 24 * 60 * 60 * 1000), 
+      new Date(Date.now() + 24 * 60 * 60 * 1000),
       false,
       new Date(),
       null
     );
+
     await this.emailVerificationRepository.save(emailVerification);
 
-    await this.eventPublisher.publish('user.email.verification.resent', {
+    const verificationUrl = `${process.env.EMAIL_VERIFICATION_BASE_URL}/email/${verificationToken}`;
+
+    await this.eventPublisher.publish("user.email.verification.resent", {
       userId: user.id,
       email: user.email,
       verificationToken,
-      timestamp: new Date().toISOString()
+      userName: user.names,
+      verificationUrl
     });
-    return {
-      message: 'If the email exists, a verification link will be sent.'
-    };
+
+    return { message: 'A new verification link has been sent to your email.' };
   }
 }
