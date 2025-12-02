@@ -22,9 +22,9 @@ export class RabbitMQEventPublisherService implements IEventPublisher {
         durable: rabbitmqConfig.options.durable
       });
 
-      console.log('✅ [AUTH] RabbitMQ connected successfully to exchange:', this.exchange);
+      console.log('[AUTH] RabbitMQ connected successfully to exchange:');
     } catch (error) {
-      console.error('❌ [AUTH] Error connecting to RabbitMQ:', error);
+      console.error('[AUTH] Error connecting to RabbitMQ:');
       throw error;
     }
   }
@@ -43,9 +43,9 @@ export class RabbitMQEventPublisherService implements IEventPublisher {
       { persistent: rabbitmqConfig.options.persistent }
     );
 
-    console.log(`📤 [AUTH] Event published: ${eventName}`);
+    console.log(`[AUTH] Event published: ${eventName}`);
     
-    console.log('📦 [AUTH] Payload:', message);
+    console.log('[AUTH] Payload:');
   }
 
   async publishBatch(events: Array<{ eventName: string; data: any }>): Promise<void> {

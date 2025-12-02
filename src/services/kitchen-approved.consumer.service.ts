@@ -26,7 +26,7 @@ export class KitchenApprovedConsumerService {
       rabbitmqConfig.routingKeys.kitchenAdminRegistered
     );
 
-    console.log("📥 [AUTH] KitchenApprovedConsumer READY");
+    console.log(" [AUTH] KitchenApprovedConsumer READY");
   }
 
   async start() {
@@ -49,7 +49,7 @@ export class KitchenApprovedConsumerService {
           return channel.ack(msg);
         }
 
-        console.log("📦 [AUTH] Event received:", data);
+        console.log("[AUTH] Event received:");
 
         const requiredFields = [
           "kitchenId",

@@ -61,7 +61,7 @@ export class RegisterAdminKitchenUseCase {
 
       await this.roleRepository.assignRoleToUser(user.id, role.id);
     } else {
-      console.log("ℹ️ [AUTH] Usuario ya existía, se reutilizará:", email);
+      console.log("ℹ️ [AUTH] Usuario ya existía, se reutilizará:");
     }
 
     await this.publisher.publish(

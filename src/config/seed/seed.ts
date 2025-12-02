@@ -17,7 +17,6 @@ const seedRoles = async () => {
   for (const roleData of rolesToSeed) {
     const roleExists = await roleRepository.findOne({ where: { name: roleData.name } });
     if (!roleExists) {
-      console.log(`🌱 Creando rol: ${roleData.name}`);
       const newRole = roleRepository.create(roleData);
       await roleRepository.save(newRole);
     }
@@ -49,7 +48,6 @@ const seedSuperAdmin = async () => {
   let superAdminUser = await userRepository.findOne({ where: { email: SUPER_ADMIN_EMAIL } });
 
   if (!superAdminUser) {
-    console.log(`🌱 Creando Usuario Super Admin: ${SUPER_ADMIN_EMAIL}`);
     const hashedPassword = await passwordHasher.hash(DEFAULT_PASSWORD);
 
     const newUser = userRepository.create({
@@ -76,12 +74,6 @@ const seedSuperAdmin = async () => {
     });
 
     await userRoleRepository.save(userRole);
-
-    console.log(
-      `✅ Usuario Super Admin creado y rol asignado.
-      Email: ${SUPER_ADMIN_EMAIL}
-      Password: ${DEFAULT_PASSWORD}`
-    );
   }
 };
 
@@ -98,7 +90,6 @@ const seedSkills = async () => {
   for (const skillName of skillsToSeed) {
     const skillExists = await skillRepository.findOne({ where: { name: skillName } });
     if (!skillExists) {
-      console.log(`🌱 Creando habilidad: ${skillName}`);
       const newSkill = skillRepository.create({
         name: skillName,
         description: '',

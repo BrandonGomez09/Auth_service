@@ -18,7 +18,6 @@ export const initializeDatabase = async (): Promise<void> => {
   try {
     if (!AppDataSource.isInitialized) {
       await AppDataSource.initialize();
-      console.log('✅ Database connection established successfully');
     }
   } catch (error) {
     console.error('❌ Error connecting to database:', error);
