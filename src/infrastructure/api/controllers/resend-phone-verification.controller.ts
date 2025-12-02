@@ -6,19 +6,19 @@ export class ResendPhoneVerificationController {
 
   async handle(req: Request, res: Response): Promise<void> {
     try {
-      const userId = parseInt(req.body.userId);
-      
-      if (isNaN(userId)) {
+      const userId = req.user?.userId; 
+
+      if (!userId) {
         res.status(400).json({
           success: false,
-          message: 'User ID is required'
+          message: 'User ID is missing from token'
         });
         return;
       }
-      
-      const dto = { userId: userId };
+
+      const dto = { userId };
       const result = await this.resendPhoneVerificationUseCase.execute(dto);
-      
+
       res.status(200).json({
         success: true,
         message: result.message,

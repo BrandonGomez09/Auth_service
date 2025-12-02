@@ -6,20 +6,20 @@ export class VerifyPhoneController {
 
   async handle(req: Request, res: Response): Promise<void> {
     try {
-      const userId = parseInt(req.body.userId);
+      const userId = req.user?.userId;
       const code = req.body.code;
-      
-      if (isNaN(userId) || !code) {
+
+      if (!userId || !code) {
         res.status(400).json({
           success: false,
-          message: 'User ID and code are required'
+          message: 'Verification code is required'
         });
         return;
       }
-      
-      const dto = { userId: userId, code: code };
+
+      const dto = { userId, code };
       const result = await this.verifyPhoneUseCase.execute(dto);
-      
+
       res.status(200).json({
         success: true,
         message: result.message
