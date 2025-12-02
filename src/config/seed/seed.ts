@@ -1,10 +1,11 @@
+require('dotenv').config();
+
 import { AppDataSource } from '../data-source';
 import { RoleSchema } from '../../database/schemas/role.schema';
 import { SkillSchema } from '../../database/schemas/skill.schema';
 import { UserSchema, UserStatus } from '../../database/schemas/user.schema';
 import { UserRoleSchema } from '../../database/schemas/user-role.schema';
 import { BcryptPasswordHasherService } from '../../services/bcrypt-password-hasher.service';
-
 
 const seedRoles = async () => {
   const roleRepository = AppDataSource.getRepository(RoleSchema);
@@ -14,17 +15,14 @@ const seedRoles = async () => {
     { name: 'Super_admin', description: 'Administrador total del sistema.', level: 3 },
   ];
   for (const roleData of rolesToSeed) {
-    const roleExists = await roleRepository.findOne({
-      where: { name: roleData.name },
-    });
+    const roleExists = await roleRepository.findOne({ where: { name: roleData.name } });
     if (!roleExists) {
-      console.log(`Creando rol: ${roleData.name}`);
+      console.log(`🌱 Creando rol: ${roleData.name}`);
       const newRole = roleRepository.create(roleData);
       await roleRepository.save(newRole);
     }
   }
 };
-
 
 const seedSuperAdmin = async () => {
   const userRepository = AppDataSource.getRepository(UserSchema);
@@ -32,9 +30,16 @@ const seedSuperAdmin = async () => {
   const userRoleRepository = AppDataSource.getRepository(UserRoleSchema);
   const passwordHasher = new BcryptPasswordHasherService();
 
-  const SUPER_ADMIN_EMAIL = 'superadmin@bi.com';
-  const DEFAULT_PASSWORD = 'Super@dm1n2025!';
-  
+  const SUPER_ADMIN_EMAIL = process.env.USER_ADMIN_EMAIL;
+  const DEFAULT_PASSWORD = process.env.USER_ADMIN_PASSWORD;
+
+  if (!SUPER_ADMIN_EMAIL || !DEFAULT_PASSWORD) {
+    console.error(
+      '❌ ERROR: Variables de entorno USER_ADMIN_EMAIL y USER_ADMIN_PASSWORD requeridas.'
+    );
+    return;
+  }
+
   const superAdminRole = await roleRepository.findOne({ where: { name: 'Super_admin' } });
   if (!superAdminRole) {
     console.error('❌ Error: El rol Super_admin no existe. Ejecute seedRoles primero.');
@@ -46,7 +51,7 @@ const seedSuperAdmin = async () => {
   if (!superAdminUser) {
     console.log(`🌱 Creando Usuario Super Admin: ${SUPER_ADMIN_EMAIL}`);
     const hashedPassword = await passwordHasher.hash(DEFAULT_PASSWORD);
-    
+
     const newUser = userRepository.create({
       email: SUPER_ADMIN_EMAIL,
       passwordHash: hashedPassword,
@@ -60,21 +65,25 @@ const seedSuperAdmin = async () => {
       emailVerifiedAt: new Date(),
       phoneVerifiedAt: new Date(),
     });
-    
+
     superAdminUser = await userRepository.save(newUser);
-    
+
     const userRole = userRoleRepository.create({
       userId: superAdminUser.id,
       roleId: superAdminRole.id,
       assignedBy: superAdminUser.id,
       isPrimary: true,
     });
+
     await userRoleRepository.save(userRole);
-    
-    console.log('✅ Usuario Super Admin creado y rol asignado. Contraseña por defecto: Super@dm1n2025!');
+
+    console.log(
+      `✅ Usuario Super Admin creado y rol asignado.
+      Email: ${SUPER_ADMIN_EMAIL}
+      Password: ${DEFAULT_PASSWORD}`
+    );
   }
 };
-
 
 const seedSkills = async () => {
   const skillRepository = AppDataSource.getRepository(SkillSchema);
@@ -87,15 +96,13 @@ const seedSkills = async () => {
     'Personal de apoyo (Multi-habilidades)',
   ];
   for (const skillName of skillsToSeed) {
-    const skillExists = await skillRepository.findOne({
-      where: { name: skillName },
-    });
+    const skillExists = await skillRepository.findOne({ where: { name: skillName } });
     if (!skillExists) {
-      console.log(`Creando habilidad: ${skillName}`);
+      console.log(`🌱 Creando habilidad: ${skillName}`);
       const newSkill = skillRepository.create({
         name: skillName,
         description: '',
-        isActive: true, 
+        isActive: true,
       });
       await skillRepository.save(newSkill);
     }
@@ -105,7 +112,7 @@ const seedSkills = async () => {
 export const runSeeds = async () => {
   try {
     await seedRoles();
-    await seedSuperAdmin(); 
+    await seedSuperAdmin();
     await seedSkills();
   } catch (error) {
     console.error('❌ Error durante el sembrado de la base de datos:', error);
