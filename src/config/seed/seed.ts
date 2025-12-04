@@ -19,7 +19,6 @@ const seedRoles = async () => {
 
   for (const roleData of rolesToSeed) {
     const exists = await roleRepository.findOne({ where: { name: roleData.name } });
-
     if (!exists) {
       await roleRepository.save(roleRepository.create(roleData));
     }
@@ -41,19 +40,21 @@ const seedSuperAdmin = async () => {
   }
 
   const superAdminRole = await roleRepository.findOne({ where: { name: 'Super_admin' } });
-
   if (!superAdminRole) {
     console.error('⚠ No se encontró el rol Super_admin. Primero ejecutar seedRoles.');
     return;
   }
 
-  let user = await userRepository.findOne({ where: { email: SUPER_ADMIN_EMAIL } });
+  let user = await userRepository
+    .createQueryBuilder('u')
+    .where('LOWER(u.email) = LOWER(:email)', { email: SUPER_ADMIN_EMAIL.trim() })
+    .getOne();
 
   if (!user) {
     const hashedPassword = await passwordHasher.hash(DEFAULT_PASSWORD);
 
     const newUser = userRepository.create({
-      email: SUPER_ADMIN_EMAIL,
+      email: SUPER_ADMIN_EMAIL, // SE GUARDA TAL CUAL
       passwordHash: hashedPassword,
       names: 'Admin',
       firstLastName: 'Super',
@@ -108,16 +109,15 @@ const seedSkills = async () => {
   ];
 
   for (const skillName of skillsToSeed) {
-    const skillExists = await skillRepository.findOne({ where: { name: skillName } });
-
-    if (!skillExists) {
-      const newSkill = skillRepository.create({
-        name: skillName,
-        description: '',
-        isActive: true,
-      });
-
-      await skillRepository.save(newSkill);
+    const exists = await skillRepository.findOne({ where: { name: skillName } });
+    if (!exists) {
+      await skillRepository.save(
+        skillRepository.create({
+          name: skillName,
+          description: '',
+          isActive: true,
+        })
+      );
     }
   }
 };
