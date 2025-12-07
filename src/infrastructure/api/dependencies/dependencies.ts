@@ -16,6 +16,9 @@ import { BcryptPasswordHasherService } from '../../../services/bcrypt-password-h
 import { JwtTokenGeneratorService } from '../../../services/jwt-token-generator.service';
 import { RabbitMQEventPublisherService } from '../../../services/rabbitmq-event-publisher.service';
 
+import { GoogleLoginUseCase } from '../../../application/use-cases/google-login.use-case';
+import { GoogleLoginController } from '../controllers/google-login.controller';
+
 import {
   RegisterUserUseCase,
   LoginUserUseCase,
@@ -125,6 +128,14 @@ const registerUserUseCase = new RegisterUserUseCase(
   userSkillRepository,
   skillRepository,
   userAvailabilityRepository
+);
+
+
+//GOGLEEE
+const googleLoginUseCase = new GoogleLoginUseCase(
+  userRepository,
+  roleRepository,
+  tokenGenerator
 );
 
 const registerKitchenAdminUseCase = new RegisterAdminKitchenUseCase(
@@ -433,5 +444,7 @@ export const getMyProfileController = new GetMyProfileController(
 export const getMyAvailabilityController = new GetMyAvailabilityController(
   getUserAvailabilityUseCase
 );
+
+export const googleLoginController = new GoogleLoginController(googleLoginUseCase);
 
 export { tokenGenerator, eventPublisher, registerKitchenAdminUseCase };

@@ -4,7 +4,8 @@ import {
   loginUserController,
   validateTokenController,
   refreshTokenController,
-  registerKitchenAdminController
+  registerKitchenAdminController,
+  googleLoginController
 } from '../dependencies/dependencies';
 
 const router = Router();
@@ -14,6 +15,8 @@ router.post('/register', registerUserController.handle.bind(registerUserControll
 router.post('/register-kitchen-admin', registerKitchenAdminController.handle.bind(registerKitchenAdminController));
 
 router.post('/login', loginUserController.handle.bind(loginUserController));
+
+router.post('/google', googleLoginController.handle.bind(googleLoginController));
 
 router.post('/validate-token', validateTokenController.handle.bind(validateTokenController));
 
